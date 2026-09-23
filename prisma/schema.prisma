@@ -1,0 +1,37 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // pooled connection (pgbouncer) - dipakai runtime
+  directUrl = env("DIRECT_URL")     // direct connection - dipakai migrate
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  nama         String
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+model Transaction {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type             String   // "income" atau "expense", divalidasi zod di level aplikasi
+  amount           Decimal  @db.Decimal(14, 2)
+  category         String?
+  note             String?
+  transactionDate  DateTime @map("transaction_date") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([transactionDate])
+  @@map("transactions")
+}
